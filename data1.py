@@ -33,7 +33,7 @@ cdata['Payment Method'] = cdata['Payment Method'].astype('category')
 cdata['Location'] = cdata['Location'].astype('category')
 
 
-#VErify data types
+
 #print(cdata.info())
 
 
@@ -58,7 +58,6 @@ for i,col in enumerate(numeric_cols):
 #Categorical Columns: Bar plots for value counts
 categorical_cols = ['Item','Payment Method','Location']
 for i,col in enumerate(categorical_cols):
-    #Convert to string first so NaN Becomes 'nan', then replace with 'NaN' for clarity
     col_str = cdata[col].astype(str).replace(['nan','UNKNOWN','ERROR'],'NaN')
     sns.countplot(y=col_str, order=col_str.value_counts().index , ax=axes[1][i])
     axes[1][i].set_title(f"Frequency of {col}")
@@ -92,15 +91,8 @@ plt.close()
 
 
 
-
-
-
-#Lets do some Hypothesis testing forrr jooookes
-
 # H0 = Mean of $ spent on Takeout equal to Mean of In-Store
-# Ha= Mean of takeout does not equal to Mean of money spent in store
 #Alpha =0.05
-#two sided test
 
 how1 = cdata.loc[cdata['Location'].isin(['In-store','Takeaway']),['Location','Total Spent']].dropna()
 how = how1.loc[how1['Location'].isin(['In-store','Takeaway']),'Location'].value_counts()
@@ -143,4 +135,5 @@ takeout_means = [np.random.choice(takeaway_spent,30,replace=True).mean()
 instore_means = [np.random.choice(instore_spent,30,replace=True).mean() 
                  for _ in range(1000)]
 
-#I give up Im tired. Goodluck future me
+
+f = takeout_means
