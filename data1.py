@@ -136,4 +136,3 @@ instore_means = [np.random.choice(instore_spent,30,replace=True).mean()
                  for _ in range(1000)]
 
 
-f = takeout_means
