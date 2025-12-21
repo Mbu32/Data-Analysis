@@ -1,4 +1,4 @@
-#multiple linear regression: Predicting future daily cafe sales
+#multiple linear regression
 import numpy as np
 import pandas as pd
 import kaggle
@@ -26,7 +26,7 @@ from dmba import AIC_score
 
 
 
-from data1 import cdata
+from CleanCafe import cdata
 
 '''
 Aggregate transcation level data into daily revenue and then 
@@ -41,7 +41,7 @@ daily = (ddata.groupby(ddata['Transaction Date'].dt.date)
          .agg(
              DailyRevenue = ('Total Spent','sum'),
              TotalQuantity = ('Quantity','sum'),
-             #NumTransactions=('Transaction ID','count') , created collinearity 
+             #NumTransactions=('Transaction ID','count') ,  collinearity 
          ).reset_index())
 
 
