@@ -6,8 +6,12 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame,Series 
 from scipy import stats
 from sklearn.utils import resample
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.linear_model import LinearRegression
 import statsmodels.stats.api as sms
 from scipy.stats import bootstrap
+
+
 
 
 
@@ -122,6 +126,7 @@ instore_stats = sms.DescrStatsW(instore_spent)
 
 ci = sms.CompareMeans(takeaway_stats, instore_stats).tconfint_diff()
 print(ci)
+
 
 
 
