@@ -82,3 +82,35 @@ model = sm.OLS(y, X)
 result = model.fit()
 
 print(result.summary())
+
+
+
+
+#Visual ~ Checking for outliers 
+
+
+
+influence = OLSInfluence(result)
+
+# Studentized residuals
+sresiduals = influence.resid_studentized_internal
+
+
+outlier_idx = sresiduals.abs() > 2
+outlier_days = daily.loc[outlier_idx, :]
+
+print(outlier_days[['Transaction Date', 'DailyRevenue', 'TotalQuantity']])
+
+
+
+
+
+
+
+plt.scatter(result.fittedvalues, sresiduals)
+plt.axhline(2, color='red', linestyle='--')
+plt.axhline(-2, color='red', linestyle='--')
+plt.xlabel('Fitted Revenue')
+plt.ylabel('Studentized Residuals')
+plt.title('Outlier Detection: Café Revenue')
+plt.show()
