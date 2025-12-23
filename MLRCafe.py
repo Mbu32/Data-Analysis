@@ -101,12 +101,6 @@ outlier_days = daily.loc[outlier_idx, :]
 
 print(outlier_days[['Transaction Date', 'DailyRevenue', 'TotalQuantity']])
 
-
-
-
-
-
-
 plt.scatter(result.fittedvalues, sresiduals)
 plt.axhline(2, color='red', linestyle='--')
 plt.axhline(-2, color='red', linestyle='--')
