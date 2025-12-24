@@ -35,7 +35,7 @@ Model median house values using demographic and geographic predictors, prioritiz
 - Statistical diagnostics  
 - Feature engineering  
 - Regression interpretation  
-- Bias–variance trade offs  
+- Bias variance trade offs  
 
 ---
 
