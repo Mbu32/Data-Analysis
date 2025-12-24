@@ -222,22 +222,31 @@ housing_f = LinearRegression()
 housing_f.fit(housing[predictors],housing[outcome])
 
 
-print(f'Intercept: {housing_f.intercept_:.3f}')
-print('Coefficients')
-
-for name, coef in zip(predictors, housing_f.coef_):
-    print(f'{name} : {coef}')
-
 fitted = housing_f.predict(housing[predictors])
 RMSE = np.sqrt(mean_squared_error(housing[outcome],fitted))
 r2 = r2_score(housing[outcome], fitted)
-print(f'RMSE: {RMSE:.0f}')
-print(f'r2: {r2:.4f}')
 
 
+'''
+Intercept: -1.738
+Coefficients
+MedInc : 0.517976246000882
+HouseAge : 0.016114449109160697
+bdrmsPerRoom : 4.813340972335011
+Population : 1.5158427883750492e-05
+AveOccup : -0.004853883289748132
+NW : 0.27574540042991713
+SE : 0.34175824058846416
+SW : 0.6210701166449213
+RMSE: 1
+r2: 0.5549
 
 
+All of these make more economic sense now. R^2 dropped ~expected b/c dropping predictors
+'''
 
+
+#Some residual subplots! Then possibly some polynomial regression!
 
 
 
