@@ -128,10 +128,7 @@ r2: 0.6062
 '''
 
 
-#Checking Correlation among predictors
-#Interactions
-#Partial Residuals for nonlinearity & interactions
-#Variance distribution/patter
+
 
 #1)Lets compute VIF
 
@@ -141,7 +138,7 @@ vif["feature"] = features.columns
 vif['VIF'] = [variance_inflation_factor(features.values,i)
               for i in range(features.shape[1])]
 
-print(vif)
+#print(vif)
 
 
 
@@ -186,16 +183,30 @@ print(counts)
 #print(housing.Longitude,housing.Latitude)
 lat_median = housing['Latitude'].median()
 long_median = housing['Longitude'].median()
+#Separate by north east/west, south east/west
+mask_ne = (housing.Longitude > long_median) & (housing.Latitude > lat_median)
+mask_nw = (housing.Longitude < long_median) & (housing.Latitude > lat_median)
+mask_se = (housing.Longitude > long_median) & (housing.Latitude < lat_median)
+mask_sw = (housing.Longitude < long_median) & (housing.Latitude < lat_median)
 
-housing['NE'] = (housing.Longitude > long_median) & housing.Latitude.loc[-122.23:]
+housing['Region'] = None
+housing.loc[mask_ne, 'Region'] = 'NE'
+housing.loc[mask_nw, 'Region'] = 'NW'
+housing.loc[mask_se, 'Region'] = 'SE'
+housing.loc[mask_sw, 'Region'] = 'SW'
 
-
+region_dummies = pd.get_dummies(housing['Region'], drop_first=True, dtype=int)
+housing= pd.concat([housing, region_dummies],axis=1)
+housing = housing.drop(columns='Region')
 
 #run our VIF again
 predictors = ['MedInc','HouseAge','bdrmsPerRoom',
               'Population','AveOccup',
-              'Latitude','Longitude']
+              'NW','SE','SW'
+              ]
 outcome = 'MedHouseVal'
+
+
 
 features = housing[predictors]
 vif_1 = DataFrame()
@@ -206,10 +217,22 @@ vif_1['VIF_1'] = [variance_inflation_factor(features.values,i)
 print(vif_1)
 
 
+#second Linear Regression
+housing_f = LinearRegression()
+housing_f.fit(housing[predictors],housing[outcome])
 
 
+print(f'Intercept: {housing_f.intercept_:.3f}')
+print('Coefficients')
 
+for name, coef in zip(predictors, housing_f.coef_):
+    print(f'{name} : {coef}')
 
+fitted = housing_f.predict(housing[predictors])
+RMSE = np.sqrt(mean_squared_error(housing[outcome],fitted))
+r2 = r2_score(housing[outcome], fitted)
+print(f'RMSE: {RMSE:.0f}')
+print(f'r2: {r2:.4f}')
 
 
 
