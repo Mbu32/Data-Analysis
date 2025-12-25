@@ -12,7 +12,7 @@ My background is in **mathematics, statistics, and finance**, and these projects
 Model median house values using demographic and geographic predictors, prioritizing **multicollinearity diagnosis, feature engineering, and coefficient interpretability** rather than purely predictive performance.
 
 **Dataset**
-- California Housing dataset (1990 U.S. Census)
+- California Housing dataset 
 - 20,640 observations, 8 numerical predictors  
 - Target: Median house value (in \$100,000s)
 
@@ -87,7 +87,6 @@ Analyze transactional café data to understand customer spending behavior and bu
 
 ## Tools & Libraries
 
-- Python  
 - pandas, numpy  
 - scikitlearn  
 - statsmodels  
