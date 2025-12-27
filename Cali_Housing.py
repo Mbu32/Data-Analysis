@@ -11,6 +11,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import HuberRegressor
 
 import statsmodels.api as sm
 import statsmodels.stats.api as sms
@@ -19,7 +20,7 @@ from statsmodels.stats.outliers_influence import OLSInfluence
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.stats.stattools import durbin_watson
 
-from pygam import LinearGAM, s, l
+from pygam import LinearGAM, s, l, te
 from pygam.datasets import wage
 
 from dmba import stepwise_selection
@@ -298,89 +299,55 @@ predictors_sm = sm.add_constant(housing[predictors_3]) #we'll be using SM to sim
 modelridge_sm = sm.OLS(housing[outcome],predictors_sm).fit()
 influence = OLSInfluence(modelridge_sm)
 
-#print(housing.loc[18501])
 
-'''
-18501: -8.495736989315777 ~  -8.5 standard deviations below mean residual... Overpredicted by a LOT... Extreme outlier
--6.548937582399078 ~ actual residuals 
-Valuof housee  1.313
-
-MedInc           15.000100
-HouseAge         52.000000
-AveRooms          8.461538
-AveBedrms         1.230769
-Population       55.000000
-AveOccup          2.115385
-Latitude         37.190000
-Longitude      -121.590000
-MedHouseVal       1.313000
-bdrmsPerRoom      0.145455
-NW                1.000000
-SE                0.000000
-SW                0.000000
-
-This is most likely a mistake. MedInc estimates a extremely high income (1,500,000), low house value, 
-Many rooms. Missed a zero?
-'''
-housing.loc[18501, 'MedHouseVal'] = 13.13 # most likely a missing digit
-
-
-#noticed another outlier through our plot, we'll redo it below(the plot). Lets look deeper. 
-
-#print(housing.loc[19006])
 
 '''
 MedInc            10.226400
 HouseAge          45.000000
 AveRooms           3.166667
 AveBedrms          0.833333
-Population      7460.000000 ~ population of 7.4k but AceOccup of 1.2k?
-AveOccup        1243.333333 ~ Cant be right, ave occup most likely 1.243... way more reasonable.
+Population      7460.000000 ~ population of 7.4k but AveOccup of 1.2k?
+AveOccup        1243.333333 ~ Cant be right
 Latitude          38.320000
-Longitude       -121.980000
+Longitude       -121.980000 ~ Searched these up lat/long its on a prison. 
 MedHouseVal        1.375000
 bdrmsPerRoom       0.263158
 NW                 1.000000
 SE                 0.000000
 SW                 0.000000
 
+
+Reason for this anamoly: According to google inmates count as population but arent ocnsidered in AveOccup... 
+Thats why thos enumbers are skewed.
 '''
-housing.loc[19006,'AveOccup'] = 1.243
 
-#I ended up uncovering a couple of other problematic data points. like so:
-housing.loc[11912,'MedHouseVal'] =11.25
+#lets take a different approach: 
 
-print(housing.loc[19006])
+predictors = [
+    'MedInc',
+    'HouseAge',
+    'bdrmsPerRoom',
+    'Population',
+    'AveOccup',
+    'Latitude',
+    'Longitude'
+]
 
-
-
-predictors_sm =sm.add_constant(housing[predictors_3])
-F_MLR = sm.OLS(housing[outcome],predictors_sm).fit()
-influence_F = OLSInfluence(F_MLR)
-
-sresiduals= influence_F.resid_studentized_internal
-print(sresiduals.idxmin(), sresiduals.min())
-print(F_MLR.resid.loc[sresiduals.idxmin()])
-outlier = housing.loc[sresiduals.idxmin(), :]
-print('Value of house', outlier[outcome])
+X = housing[predictors].values
+y = housing['MedHouseVal'].values
 
 
+gam = LinearGAM(
+    l(0) +                 # MedInc (linear is fine)
+    l(1) +                 # HouseAge
+    l(2) +                 # bdrmsPerRoom
+    l(3) +                 # Population
+    l(4) +                 # AveOccup
+    te(5, 6, n_splines=25)  # Latitude, Longitude (2D spatial smooth)
+)
 
-
-#run our plot once more!
-fog,ax = plt.subplots(figsize=(5,5))
-ax.axhline(-2.5, linestyle='--', color='C1')
-ax.axhline(2.5, linestyle='--', color='C1')
-ax.scatter(influence_F.hat_matrix_diag,influence_F.resid_studentized_internal,
-           s=1000*np.sqrt(influence_F.cooks_distance[0]),alpha=0.5)
-
-ax.set_xlabel('hat values')
-ax.set_ylabel('studentized residuals')
-
-plt.tight_layout()
-plt.close()
-
-
+gam.gridsearch(X, y)
+print(gam.summary())
 
 
 
