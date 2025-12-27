@@ -355,7 +355,7 @@ gam.gridsearch(x, y)
 pickle.dump(gam,open('gam.pkl','wb'))
 '''
 
-loaded_gam=pickle.load(open('gam.pkl','rb'))
+loaded_gam=pickle.load(open('Data/gam.pkl','rb'))
 
 
 
@@ -386,6 +386,12 @@ coords = list(zip(housing['Longitude'], housing['Latitude']))
 w = KNN.from_array(coords, k=8)
 w.transform = 'r'
 moran = Moran(residuals, w)
+print(moran.I)
+'''
+Moran's I: 0.3992
+p-value: 0.0010
 
-print(f"Moran's I: {moran.I:.4f}")
-print(f"p-value: {moran.p_sim:.4f}")
+
+
+Residuals show positive Spatial Autocorrelation, we might have depth effects that arent fully captured by our model. I'll come back to this.
+'''

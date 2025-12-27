@@ -15,9 +15,11 @@ from scipy.stats import bootstrap
 
 
 
-sales = pd.read_csv('dirty_cafe_sales.csv')
+sales = pd.read_csv('Data/dirty_cafe_sales.csv')
 
-#print(sales.info())
+print(sales.info())
+print(sales.head())
+
 
 cdata = sales.copy()
 
