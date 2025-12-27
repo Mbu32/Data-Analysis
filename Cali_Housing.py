@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pandas import DataFrame,Series 
+import pickle
 
 from scipy import stats
 
@@ -22,9 +23,10 @@ from statsmodels.stats.stattools import durbin_watson
 
 from pygam import LinearGAM, s, l, te
 from pygam.datasets import wage
-
 from dmba import stepwise_selection
 
+from libpysal.weights import KNN
+from esda.moran import Moran
 
 '''
 California Housing dataset
@@ -167,7 +169,7 @@ counts = {
     '0 to 1': ((housing['bdrmsPerRoom'] >= 0) & (housing['bdrmsPerRoom'] <= 1)).sum(),
     'Above 1': (housing['bdrmsPerRoom'] > 1).sum()
 }
-print(counts)
+#print(counts)
 
 
 ##now for long/lat
@@ -317,11 +319,11 @@ SE                 0.000000
 SW                 0.000000
 
 
-Reason for this anamoly: According to google inmates count as population but arent ocnsidered in AveOccup... 
+Reason for this anamoly: According to google inmates count as population but arent considered in AveOccup... 
 Thats why thos enumbers are skewed.
 '''
 
-#lets take a different approach: 
+#lets take a different approach: and compare models after.
 
 predictors = [
     'MedInc',
@@ -333,9 +335,11 @@ predictors = [
     'Longitude'
 ]
 
-X = housing[predictors].values
+x = housing[predictors].values
 y = housing['MedHouseVal'].values
 
+'''
+pickled this so as to not have to rerun eeevverytime:
 
 gam = LinearGAM(
     l(0) +                 # MedInc (linear is fine)
@@ -346,15 +350,42 @@ gam = LinearGAM(
     te(5, 6, n_splines=25)  # Latitude, Longitude (2D spatial smooth)
 )
 
-gam.gridsearch(X, y)
-print(gam.summary())
+gam.gridsearch(x, y)
+#print(gam.summary())
+pickle.dump(gam,open('gam.pkl','wb'))
+'''
+
+loaded_gam=pickle.load(open('gam.pkl','rb'))
 
 
 
-#residual subplots
-fig, ax = plt.subplots(figsize=(10, 8))
-fig = sm.graphics.plot_ccpr_grid(modelridge_sm, fig=fig)
-plt.tight_layout()
+'''
+GCV:  0.3648 ~ not overfitting!
+lambda: 0.001 (not zero!)
+EDF: 248 vs samples size of 20640
+ADjusted R sqrd: .74 ~ Awesome, also better
+'''
+residuals = y - loaded_gam.predict(x)
+
+
+
+#Spatial residual plot
+fig=plt.figure(figsize=(8,6))
+XX=loaded_gam.generate_X_grid(term=5)
+Z=loaded_gam.partial_dependence(term=5,X=XX)
+plt.tricontourf(XX[:,5],XX[:,6],Z,levels=30)
+plt.colorbar(label='Price Effect')
+plt.xlabel('Latitude')
+plt.ylabel('Longitude')
+plt.title('Spatial Effect on House Prices')
 plt.close()
 
 
+#Morans I
+coords = list(zip(housing['Longitude'], housing['Latitude']))
+w = KNN.from_array(coords, k=8)
+w.transform = 'r'
+moran = Moran(residuals, w)
+
+print(f"Moran's I: {moran.I:.4f}")
+print(f"p-value: {moran.p_sim:.4f}")
