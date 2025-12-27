@@ -386,7 +386,7 @@ coords = list(zip(housing['Longitude'], housing['Latitude']))
 w = KNN.from_array(coords, k=8)
 w.transform = 'r'
 moran = Moran(residuals, w)
-print(moran.I)
+#print(moran.I, moran.p_norm)
 '''
 Moran's I: 0.3992
 p-value: 0.0010
