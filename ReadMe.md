@@ -1,8 +1,8 @@
 
 # Applied Data Analysis & Statistical Modeling Projects
 
-This repository contains applied projects demonstrating **statistical reasoning, regression modeling, feature engineering, and model diagnostics**, with an emphasis on interpretability and sound quantitative decision making.  
-My background is in **mathematics, statistics, and finance**, and these projects focus on translating theory into practical, data driven insights.
+This repository contains applied projects demonstrating statistical reasoning, regression modeling, feature engineering, and model diagnostics. 
+My background is in mathematics, statistics, and finance, and these projects focus on translating theory into practical, data driven insights.
 
 
 
@@ -25,17 +25,19 @@ Model median house values using demographic and geographic predictors, prioritiz
   - Region based geographic encoding using dummy variables
 - Model re estimation after feature refinement
 - Residual and influence diagnostics using **statsmodels**
+- **Advanced Methods**: Generalized Additive Models (GAM) with 2D spatial smoothing
+- **Regularization**: Ridge regression for coefficient stabilization
+- **Spatial Analysis**: Moran's I test for spatial autocorrelation
+- **Residual Diagnostics**: Durbin-Watson, influence points, outlier detection
 
-**Key Insights**
-- Severe multicollinearity was identified among room related and geographic predictors
-- Feature engineering substantially improved coefficient stability and interpretability
-- Reduced model complexity led to an expected decrease in R², reflecting a trade off between fit and interpretability
 
-**Skills Demonstrated**
-- Statistical diagnostics  
-- Feature engineering  
-- Regression interpretation  
-- Bias variance trade offs  
+# Key transformations and analysis steps:
+1. Initial VIF analysis revealed VIF > 500 for latitude/longitude
+2. Created bdrmsPerRoom = AveBedrms/AveRooms
+3. Categorized geographic regions: NE, NW, SE, SW
+4. Applied Ridge regression (alpha=0.5) for regularization
+5. Built GAM with 2D spatial term: te(Latitude, Longitude, n_splines=25)
+6. Conducted Moran's I spatial autocorrelation test (k=8 nearest neighbors)
 
 ---
 
