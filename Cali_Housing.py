@@ -96,8 +96,8 @@ housing_lm.fit(housing[predictors],housing[outcome])
 fitted = housing_lm.predict(housing[predictors])
 RMSE = np.sqrt(mean_squared_error(housing[outcome],fitted))
 r2 = r2_score(housing[outcome], fitted)
-print(f'RMSE: {RMSE:.0f}')
-print(f'r2: {r2:.4f}')
+#print(f'RMSE: {RMSE:.0f}')
+#print(f'r2: {r2:.4f}')
 
 '''
 Initial Linear Regression:
@@ -203,7 +203,7 @@ vif_1["feature_1"] = features.columns
 vif_1['VIF_1'] = [variance_inflation_factor(features.values,i)
               for i in range(features.shape[1])]
 
-print(vif_1)
+#print(vif_1)
 '''
 Second VIF after adjustments made:
 
@@ -240,7 +240,7 @@ vif_2["feature_1"] = features.columns
 vif_2['VIF_1'] = [variance_inflation_factor(features.values,i)
               for i in range(features.shape[1])]
 
-print(vif_2)
+#print(vif_2)
 
 '''
 
@@ -288,55 +288,106 @@ Residuals mean: -0.000 ~ amazing
 Residuals std: 0.772 
 Durbin-Watson: 0.946 ~ a problem, without more data/predictors, this could be hard to fix.
 
-
-We can still use model for prediction rather than interpreting
 '''
 
-#Some residual subplots! Then possibly some polynomial regression!
 
 
 
+#Outliers
+predictors_sm = sm.add_constant(housing[predictors_3]) #we'll be using SM to simplify making the plots... Same answer 
+modelridge_sm = sm.OLS(housing[outcome],predictors_sm).fit()
+influence = OLSInfluence(modelridge_sm)
 
-
-
-
-
-#Influence & outliers
-
-house_outliers = sm.OLS(housing[outcome],housing[predictors].assign(const=1))
-outliers_result = house_outliers.fit()
-#print(outliers_result.summary())
-#corr_matrix = housing[predictors].corr()
-#print(corr_matrix)
-
-
-
+#print(housing.loc[18501])
 
 '''
-influence = OLSInfluence(house_outliers.fit())
-fig, ax = plt.subplots(figsize=(5,5))
-ax.axhline(-2.5,linestyle='--',color='C1')
-ax.axhline(2.5,linestyle='--',color='C1')
-ax.scatter(influence.hat_matrix_diag,influence.resid_studentized_internal,
-           s=1000 * np.sqrt(influence.cooks_distance[0]),alpha=0.5)
+18501: -8.495736989315777 ~  -8.5 standard deviations below mean residual... Overpredicted by a LOT... Extreme outlier
+-6.548937582399078 ~ actual residuals 
+Valuof housee  1.313
+
+MedInc           15.000100
+HouseAge         52.000000
+AveRooms          8.461538
+AveBedrms         1.230769
+Population       55.000000
+AveOccup          2.115385
+Latitude         37.190000
+Longitude      -121.590000
+MedHouseVal       1.313000
+bdrmsPerRoom      0.145455
+NW                1.000000
+SE                0.000000
+SW                0.000000
+
+This is most likely a mistake. MedInc estimates a extremely high income (1,500,000), low house value, 
+Many rooms. Missed a zero?
+'''
+housing.loc[18501, 'MedHouseVal'] = 13.13 # most likely a missing digit
+
+
+#noticed another outlier through our plot, we'll redo it below(the plot). Lets look deeper. 
+
+#print(housing.loc[19006])
+
+'''
+MedInc            10.226400
+HouseAge          45.000000
+AveRooms           3.166667
+AveBedrms          0.833333
+Population      7460.000000 ~ population of 7.4k but AceOccup of 1.2k?
+AveOccup        1243.333333 ~ Cant be right, ave occup most likely 1.243... way more reasonable.
+Latitude          38.320000
+Longitude       -121.980000
+MedHouseVal        1.375000
+bdrmsPerRoom       0.263158
+NW                 1.000000
+SE                 0.000000
+SW                 0.000000
+
+'''
+housing.loc[19006,'AveOccup'] = 1.243
+
+#I ended up uncovering a couple of other problematic data points. like so:
+housing.loc[11912,'MedHouseVal'] =11.25
+
+print(housing.loc[19006])
+
+
+
+predictors_sm =sm.add_constant(housing[predictors_3])
+F_MLR = sm.OLS(housing[outcome],predictors_sm).fit()
+influence_F = OLSInfluence(F_MLR)
+
+sresiduals= influence_F.resid_studentized_internal
+print(sresiduals.idxmin(), sresiduals.min())
+print(F_MLR.resid.loc[sresiduals.idxmin()])
+outlier = housing.loc[sresiduals.idxmin(), :]
+print('Value of house', outlier[outcome])
+
+
+
+
+#run our plot once more!
+fog,ax = plt.subplots(figsize=(5,5))
+ax.axhline(-2.5, linestyle='--', color='C1')
+ax.axhline(2.5, linestyle='--', color='C1')
+ax.scatter(influence_F.hat_matrix_diag,influence_F.resid_studentized_internal,
+           s=1000*np.sqrt(influence_F.cooks_distance[0]),alpha=0.5)
 
 ax.set_xlabel('hat values')
 ax.set_ylabel('studentized residuals')
 
 plt.tight_layout()
-plt.show()
-'''
+plt.close()
 
 
 
 
-'''
-mask = [dist<0.8 for dist in influence.cooks_distance[0]]
-house_infl = house_outliers.loc[mask]
-ols_infl = sm.OLS(house_infl[outcome], house_infl[predictors])
-result_infl = ols_infl.fit()
-pd.DataFrame({
-    'Original': housing_lm.params,
-    'Influential removed': result_infl.params,
-})
-'''
+
+#residual subplots
+fig, ax = plt.subplots(figsize=(10, 8))
+fig = sm.graphics.plot_ccpr_grid(modelridge_sm, fig=fig)
+plt.tight_layout()
+plt.close()
+
+
