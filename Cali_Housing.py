@@ -5,28 +5,24 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pandas import DataFrame,Series 
 
-
-
 from scipy import stats
-from scipy.stats import bootstrap
 
-from sklearn.utils import resample
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.linear_model import LinearRegression
-
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
 
 import statsmodels.api as sm
 import statsmodels.stats.api as sms
 import statsmodels.formula.api as smf
 from statsmodels.stats.outliers_influence import OLSInfluence
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-
+from statsmodels.stats.stattools import durbin_watson
 
 from pygam import LinearGAM, s, l
 from pygam.datasets import wage
 
 from dmba import stepwise_selection
-from dmba import AIC_score
 
 
 '''
@@ -97,13 +93,6 @@ outcome = 'MedHouseVal'
 
 housing_lm = LinearRegression()
 housing_lm.fit(housing[predictors],housing[outcome])
-
-print(f'Intercept: {housing_lm.intercept_:.3f}')
-print('Coefficients')
-
-for name, coef in zip(predictors, housing_lm.coef_):
-    print(f'{name} : {coef}')
-
 fitted = housing_lm.predict(housing[predictors])
 RMSE = np.sqrt(mean_squared_error(housing[outcome],fitted))
 r2 = r2_score(housing[outcome], fitted)
@@ -111,6 +100,8 @@ print(f'RMSE: {RMSE:.0f}')
 print(f'r2: {r2:.4f}')
 
 '''
+Initial Linear Regression:
+
 Linear regression:
 Intercept: -36.942
 Coefficients
@@ -137,12 +128,10 @@ vif = DataFrame()
 vif["feature"] = features.columns
 vif['VIF'] = [variance_inflation_factor(features.values,i)
               for i in range(features.shape[1])]
-
 #print(vif)
-
-
-
 '''
+Initial VIF:
+
  feature         VIF
 0      MedInc   11.511140
 1    HouseAge    7.195917
@@ -163,6 +152,7 @@ make Avebedrooms as a ratio of Averooms.
 Averooms_fixed = AveBedrms/AveRooms 
 ~This wont tell us exact amount of rooms, but what fraction of rooms are bedrooms!
 
+Turn long/lat into 4 sectors
 '''
 
 
@@ -180,7 +170,6 @@ print(counts)
 
 
 ##now for long/lat
-#print(housing.Longitude,housing.Latitude)
 lat_median = housing['Latitude'].median()
 long_median = housing['Longitude'].median()
 #Separate by north east/west, south east/west
@@ -215,36 +204,93 @@ vif_1['VIF_1'] = [variance_inflation_factor(features.values,i)
               for i in range(features.shape[1])]
 
 print(vif_1)
+'''
+Second VIF after adjustments made:
+
+   feature_1      VIF_1
+0        MedInc   5.535472
+1      HouseAge   6.660250
+2  bdrmsPerRoom  14.435963
+3    Population   2.777088
+4      AveOccup   1.095111
+5            NW  11.152561
+6            SE  12.545445
+7            SW   1.601056
+
+Still concerning. Lets try Regularization plus removing SE b/c high multicollinearity with NW (redundant info!!)
+'''
 
 
-#second Linear Regression
-housing_f = LinearRegression()
-housing_f.fit(housing[predictors],housing[outcome])
 
 
-fitted = housing_f.predict(housing[predictors])
-RMSE = np.sqrt(mean_squared_error(housing[outcome],fitted))
-r2 = r2_score(housing[outcome], fitted)
+predictors_3 = ['MedInc','HouseAge','bdrmsPerRoom',
+              'Population','AveOccup',
+              'NW','SW'
+              ]
+outcome = 'MedHouseVal'
 
+
+LR_ridge = Ridge(alpha=0.5)
+LR_ridge.fit(housing[predictors_3],housing[outcome]) 
+
+
+features = housing[predictors_3]
+vif_2 = DataFrame()
+vif_2["feature_1"] = features.columns
+vif_2['VIF_1'] = [variance_inflation_factor(features.values,i)
+              for i in range(features.shape[1])]
+
+print(vif_2)
 
 '''
-Intercept: -1.738
+
+Post-Regularization + Engineering of Ratio's
+
+Intercept: -1.431
 Coefficients
-MedInc : 0.517976246000882
-HouseAge : 0.016114449109160697
-bdrmsPerRoom : 4.813340972335011
-Population : 1.5158427883750492e-05
-AveOccup : -0.004853883289748132
-NW : 0.27574540042991713
-SE : 0.34175824058846416
-SW : 0.6210701166449213
-RMSE: 1
-r2: 0.5549
+MedInc : 0.5186842219275254
+HouseAge : 0.01650889191126739
+bdrmsPerRoom : 4.8287326918273585
+Population : 1.4590660735176063e-05
+AveOccup : -0.004859689121525546
+NW : -0.04713132566994243
+SE : 0.29827068826318864
 
 
-All of these make more economic sense now. R^2 dropped ~expected b/c dropping predictors
+
+      feature_1     VIF_1
+0        MedInc  3.544312
+1      HouseAge  6.202707
+2  bdrmsPerRoom  7.590573
+3    Population  2.728100
+4      AveOccup  1.095081
+5            NW  1.817965
+6            SW  1.062245
+
+
+Everything is looking much MUCH better/ makes more sense. Less VIF means our estimates are more reliable
+
+Next: Residual Analysis
 '''
 
+predictedv = LR_ridge.predict(housing[predictors_3])
+residuals = housing[outcome] - predictedv
+
+
+#print(f"Residuals mean: {residuals.mean():.3f}")  # Should be ~0
+#print(f"Residuals std: {residuals.std():.3f}")
+dw_stat = durbin_watson(residuals)
+#print(f"Durbin-Watson: {dw_stat:.3f}")
+
+
+'''
+Residuals mean: -0.000 ~ amazing
+Residuals std: 0.772 
+Durbin-Watson: 0.946 ~ a problem, without more data/predictors, this could be hard to fix.
+
+
+We can still use model for prediction rather than interpreting
+'''
 
 #Some residual subplots! Then possibly some polynomial regression!
 
