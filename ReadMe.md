@@ -89,9 +89,12 @@ Analyze transactional café data to understand customer spending behavior and bu
 
 ## Tools & Libraries
 
-- pandas, numpy  
-- scikitlearn  
-- statsmodels  
-- scipy  
-- matplotlib, seaborn  
-
+- **Data Manipulation**: pandas, numpy
+- **Machine Learning**: scikit-learn (LinearRegression, Ridge, StandardScaler, metrics)
+- **Statistical Modeling**: statsmodels (OLS, VIF, Durbin-Watson, influence diagnostics)
+- **Scientific Computing**: scipy (statistical functions, optimization)
+- **Visualization**: matplotlib, seaborn
+- **Advanced Modeling**: pygam (Generalized Additive Models with 2D spatial smoothing)
+- **Spatial Analysis**: libpysal (KNN weights), esda (Moran's I spatial autocorrelation)
+- **Model Persistence**: pickle (serialization/deserialization of trained models)
+- **Model Selection**: dmba (stepwise selection utilities)
