@@ -164,7 +164,7 @@ cm = confusion_matrix(y_test, y_pred_class)
 TN, FP, FN, TP = cm.ravel()
 
 
-rec_prec_f1(TN,FP,FN,TP)
+#rec_prec_f1(TN,FP,FN,TP)
 '''
 Precision: 0.3691210485736315 
 and recall:0.5771549125979506,
@@ -180,10 +180,46 @@ vif = DataFrame()
 vif["feature"] =  X.columns
 vif['VIF'] =  [variance_inflation_factor(X.values,i)
                for i in range(X.shape[1])]
-print(vif)
+#print(vif)
 
 
-
+'''
+   feature        VIF
+0      LIMIT_BAL   4.330758
+1          PAY_0   1.917328
+2          PAY_2   3.213951
+3          PAY_3   3.728561
+4          PAY_4   4.441534
+5          PAY_5   4.987126
+6          PAY_6   3.464758
+7      BILL_AMT1  20.831599
+8      BILL_AMT2  38.220042
+9      BILL_AMT3  31.809041
+10     BILL_AMT4  29.556822
+11     BILL_AMT5  36.003837
+12     BILL_AMT6  21.458256
+13      PAY_AMT1   1.908595
+14      PAY_AMT2   2.385728
+15      PAY_AMT3   1.913540
+16      PAY_AMT4   1.805446
+17      PAY_AMT5   1.854983
+18      PAY_AMT6   1.271150
+19           SEX   8.143608
+20  AGE_(23, 26]   2.178598
+21  AGE_(26, 29]   2.493857
+22  AGE_(29, 32]   2.240341
+23  AGE_(32, 35]   2.106848
+24  AGE_(35, 40]   2.565256
+25  AGE_(40, 45]   2.154868
+26  AGE_(45, 55]   2.221509
+27  AGE_(55, 65]   1.235558
+28  AGE_(65, 80]   1.032748
+29   EDUCATION_2   2.372302
+30   EDUCATION_3   1.628622
+31   EDUCATION_4   1.050083
+32    MARRIAGE_2   2.466663
+33    MARRIAGE_3   1.036171
+'''
 
 
 
