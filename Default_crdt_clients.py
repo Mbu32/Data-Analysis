@@ -249,20 +249,38 @@ for thresh in np.arange(.1,.6,.05):
 print(f'The best threshold: {best_thresh} ,and we got and f1 of: {best_f1}')
 
 
+'''
+The best threshold: 0.45000000000000007 ,and we got and f1 of: 0.8060214276027304, AWESOME!
 
-y_pred_class = (y_pred_prob >= 0.3).astype(int)
+Lets test on actual test imbalanced data.
+'''
+
+y_testoptimal = (y_pred_prob >= 0.45).astype(int)
+y_pred_prob = LR.predict_proba(X_test_scaledf)[:,1]
+
+# We need to manually calculate Matrix. If greater than .45, it is default
+
+#confusion Matrix
 
 cm = confusion_matrix(y_test, y_pred_class)
 TN, FP, FN, TP = cm.ravel()
 
 
-#rec_prec_f1(TN,FP,FN,TP)
+rec_prec_f1(TN,FP,FN,TP)
 '''
-Precision: 0.3691210485736315 
-and recall:0.5771549125979506,
-specificity:0.7198253723677452 
-and lastly f1: 0.4502703973665648
+
+
 '''
+
+
+
+
+
+
+
+
+
+
 vif = DataFrame()
 vif["feature"] =  X.columns
 vif['VIF'] =  [variance_inflation_factor(X.values,i)
