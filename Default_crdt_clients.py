@@ -300,7 +300,7 @@ log_sm = sm.GLM(y_train,X_train_scaled_df.assign(const=1)
                 ,family=sm.families.Binomial())
 log_result = log_sm.fit()
 
-print(log_result.summary())
+#print(log_result.summary())
 
 
 '''
