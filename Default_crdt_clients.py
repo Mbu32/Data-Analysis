@@ -1,28 +1,41 @@
+import math
+import os
+import random
 from pathlib import Path
+from collections import defaultdict
+from itertools import product
+
 import pandas as pd
 import numpy as np
-from pandas import DataFrame 
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
+
+from sklearn import preprocessing
+from sklearn import metrics
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split,GridSearchCV,cross_val_predict
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.linear_model import LogisticRegression , LogisticRegressionCV
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import confusion_matrix, precision_recall_curve
+from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
+from sklearn.metrics import confusion_matrix, precision_recall_curve, make_scorer,f1_score,recall_score,precision_score
 from sklearn.metrics import roc_curve, accuracy_score, roc_auc_score
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import cross_val_score, KFold, GridSearchCV
+
+from xgboost import XGBClassifier
+from imblearn.over_sampling import SMOTE, ADASYN, BorderlineSMOTE
+from pygam import LinearGAM, s, f, l
 
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-from imblearn.over_sampling import SMOTE, ADASYN, BorderlineSMOTE
-from pygam import LinearGAM, s, f, l
+from dmba import plotDecisionTree, textDecisionTree, classificationSummary
 
-
-from dmba import classificationSummary
-
-import seaborn as sns
-import matplotlib.pyplot as plt
+from pandas import DataFrame
 
 data = pd.read_excel('Data/default_crdtcard.xls',skiprows=1)
 #print(data.info())
@@ -101,26 +114,86 @@ features = ['LIMIT_BAL', 'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6',
        'EDUCATION_2', 'EDUCATION_3', 'EDUCATION_4', 'MARRIAGE_2',
        'MARRIAGE_3']
 
-outcome = ['default payment next month']
+outcome = 'default payment next month'
 
 
 #split data for test/train then ensure equal probabilities for default/no default to ensure less bias in model
 
 X=data_processed[features]
-y=data_processed['default payment next month']
+y=data_processed[outcome]
 # 1. Split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.5, random_state=42, stratify=y
 )
 
+
+
+#lets scale our data.
+scaler=StandardScaler()
+X_trained_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+
+###### We're going to do KNN & CV, find best parameters
+param_grid = {'n_neighbors':[3,5,7,9,11,13,15,17,19,21]}
+knn_cv = GridSearchCV(
+    KNeighborsClassifier(),
+    param_grid,
+    cv=5,
+    scoring='f1',
+    n_jobs=-1,
+    verbose=0
+)
+    
+knn_cv.fit(X_trained_scaled,y_train)
+best_k=knn_cv.best_params_['n_neighbors']
+print(f'optimal k from cv:{best_k}, with an F1 of:{knn_cv.best_score_:.3f}')
+
+
+
+knn = KNeighborsClassifier(n_neighbors=best_k) 
+#to make sure we dont have any data leakage
+knn_trainp = cross_val_predict(
+    knn,
+    X_trained_scaled,
+    y_train,
+    cv=5,
+    method='predict_proba'
+)[:, 1]
+
+
+knn.fit(X_trained_scaled, y_train) 
+knn_testp=knn.predict_proba(X_test_scaled)[:,1]
+
+
+
+data_processed['borrower_score']=np.nan
+data_processed['borrower_score'].loc[X_train.index,'borrower_score']=knn_trainp
+data_processed['borrower_score'].loc[X_test.index,'borrower_score']=knn_testp
+
+
+'''
 #2 Apply SMOTE to the training set 
 smote=SMOTE(random_state=42)
 X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
 
-#lets scale our data.
-scaler=StandardScaler()
-X_trained_scaled = scaler.fit_transform(X_train_res)
-X_test_scaled = scaler.transform(X_test)
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -132,8 +205,6 @@ y_pred_prob = LR.predict_proba(X_test_scaled)[:,1]
 y_pred_class = LR.predict(X_test_scaled)
 
 #confusion Matrix
-
-
 cm = confusion_matrix(y_test, y_pred_class)
 TN, FP, FN, TP = cm.ravel()
 
