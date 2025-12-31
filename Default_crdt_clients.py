@@ -116,15 +116,11 @@ features = ['LIMIT_BAL', 'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6',
 
 outcome = 'default payment next month'
 
-
-#split data for test/train then ensure equal probabilities for default/no default to ensure less bias in model
-
 X=data_processed[features]
 y=data_processed[outcome]
 # 1. Split
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.5, random_state=42, stratify=y
-)
+    X, y, test_size=0.5, random_state=42, stratify=y)
 
 
 
@@ -181,7 +177,7 @@ The best threshold: 0.20000000000000004 ,and we got and f1 of: 0.425466158442361
 Still not great. Trying a different model & not including KNN as a feature either.
 '''
 
-
+print('de2')
 
 
 #logistic regression
@@ -229,6 +225,31 @@ f1 = 0.4031413612565445 ~ low because recall is low...
 
 Threshold:
 '''
+
+
+#Lets find the best threshold:
+best_f1 = 0
+best_thresh = 0.5
+
+y_prob1= cross_val_predict(
+    LR,
+    X_trained_scaledf,
+    y_train_res,
+    cv=5,
+    method='predict_proba'
+)[:, 1]
+
+
+for thresh in np.arange(.1,.6,.05):
+    y_pred=(y_prob1 >= thresh).astype(int)
+    f1 = f1_score(y_train_res,y_pred)
+    if f1 > best_f1:
+        best_f1=f1
+        best_thresh=thresh
+print(f'The best threshold: {best_thresh} ,and we got and f1 of: {best_f1}')
+
+
+
 y_pred_class = (y_pred_prob >= 0.3).astype(int)
 
 cm = confusion_matrix(y_test, y_pred_class)
