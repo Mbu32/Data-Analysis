@@ -15,13 +15,13 @@ from matplotlib.patches import Ellipse
 from sklearn import preprocessing
 from sklearn import metrics
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split,GridSearchCV,cross_val_predict
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-from sklearn.metrics import confusion_matrix, precision_recall_curve
+from sklearn.metrics import confusion_matrix, precision_recall_curve, make_scorer,f1_score,recall_score,precision_score
 from sklearn.metrics import roc_curve, accuracy_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_val_score, KFold, GridSearchCV
@@ -126,28 +126,58 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.5, random_state=42, stratify=y
 )
 
+
+
+#lets scale our data.
+scaler=StandardScaler()
+X_trained_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+
+###### We're going to do KNN & CV, find best parameters
+param_grid = {'n_neighbors':[3,5,7,9,11,13,15,17,19,21]}
+knn_cv = GridSearchCV(
+    KNeighborsClassifier(),
+    param_grid,
+    cv=5,
+    scoring='f1',
+    n_jobs=-1,
+    verbose=0
+)
+    
+knn_cv.fit(X_trained_scaled,y_train)
+best_k=knn_cv.best_params_['n_neighbors']
+print(f'optimal k from cv:{best_k}, with an F1 of:{knn_cv.best_score_:.3f}')
+
+
+
+knn = KNeighborsClassifier(n_neighbors=best_k) 
+#to make sure we dont have any data leakage
+knn_trainp = cross_val_predict(
+    knn,
+    X_trained_scaled,
+    y_train,
+    cv=5,
+    method='predict_proba'
+)[:, 1]
+
+
+knn.fit(X_trained_scaled, y_train) 
+knn_testp=knn.predict_proba(X_test_scaled)[:,1]
+
+
+
+data_processed['borrower_score']=np.nan
+data_processed['borrower_score'].loc[X_train.index,'borrower_score']=knn_trainp
+data_processed['borrower_score'].loc[X_test.index,'borrower_score']=knn_testp
+
+
+'''
 #2 Apply SMOTE to the training set 
 smote=SMOTE(random_state=42)
 X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
 
-#lets scale our data.
-scaler=StandardScaler()
-X_trained_scaled = scaler.fit_transform(X_train_res)
-X_test_scaled = scaler.transform(X_test)
-
-###### We're going to do KNN here.
-knn = KNeighborsClassifier(n_neighbors=5)
-knn.fit(X_trained_scaled,y_train_res)
-
-knn_trainp= knn.predict_proba(X_trained_scaled)[:,0]
-knn_testp=knn.predict_proba(X_test_scaled)[:,1]
-
-print(knn_testp)
-
-
-
-
-
+'''
 
 
 
