@@ -135,6 +135,8 @@ X_test_scaled = scaler.transform(X_test)
 
 
 ###### We're going to do KNN & CV, find best parameters
+
+'''
 param_grid = {'n_neighbors':[3,5,7,9,11,13,15,17,19,21]}
 knn_cv = GridSearchCV(
     KNeighborsClassifier(),
@@ -149,11 +151,15 @@ knn_cv.fit(X_trained_scaled,y_train)
 best_k=knn_cv.best_params_['n_neighbors']
 print(f'optimal k from cv:{best_k}, with an F1 of:{knn_cv.best_score_:.3f}')
 
+optimal k from cv:3, with an F1 of:0.391
 
+f1 is low ~ work on threshold
 
-knn = KNeighborsClassifier(n_neighbors=best_k) 
-#to make sure we dont have any data leakage
-knn_trainp = cross_val_predict(
+knn = KNeighborsClassifier(n_neighbors=3,weights='distance') 
+best_f1 = 0
+best_thresh = 0.5
+
+y_prob1= cross_val_predict(
     knn,
     X_trained_scaled,
     y_train,
@@ -162,47 +168,41 @@ knn_trainp = cross_val_predict(
 )[:, 1]
 
 
-knn.fit(X_trained_scaled, y_train) 
-knn_testp=knn.predict_proba(X_test_scaled)[:,1]
+for thresh in np.arange(.1,.6,.05):
+    y_pred=(y_prob1 >= thresh).astype(int)
+    f1 = f1_score(y_train,y_pred)
+    if f1 > best_f1:
+        best_f1=f1
+        best_thresh=thresh
+print(f'The best threshold: {best_thresh} ,and we got and f1 of: {best_f1}')
 
+The best threshold: 0.20000000000000004 ,and we got and f1 of: 0.4254661584423612
 
-
-data_processed['borrower_score']=np.nan
-data_processed['borrower_score'].loc[X_train.index,'borrower_score']=knn_trainp
-data_processed['borrower_score'].loc[X_test.index,'borrower_score']=knn_testp
-
-
+Still not great. Trying a different model & not including KNN as a feature either.
 '''
-#2 Apply SMOTE to the training set 
+
+
+
+
+#logistic regression
+# Apply SMOTE to the training set 
 smote=SMOTE(random_state=42)
 X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
 
-'''
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+scaler=StandardScaler()
+X_trained_scaledf = scaler.fit_transform(X_train_res)
+X_test_scaledf = scaler.transform(X_test)
 
 
 
 
 #logistic Regression
 LR = LogisticRegression(max_iter=1000)
-LR.fit(X_trained_scaled,y_train_res)
+LR.fit(X_trained_scaledf,y_train_res)
 
-y_pred_prob = LR.predict_proba(X_test_scaled)[:,1]
-y_pred_class = LR.predict(X_test_scaled)
+y_pred_prob = LR.predict_proba(X_test_scaledf)[:,1]
+y_pred_class = LR.predict(X_test_scaledf)
 
 #confusion Matrix
 cm = confusion_matrix(y_test, y_pred_class)
@@ -242,11 +242,6 @@ and recall:0.5771549125979506,
 specificity:0.7198253723677452 
 and lastly f1: 0.4502703973665648
 '''
-
-
-
-
-
 vif = DataFrame()
 vif["feature"] =  X.columns
 vif['VIF'] =  [variance_inflation_factor(X.values,i)
@@ -305,7 +300,7 @@ log_sm = sm.GLM(y_train,X_train_scaled_df.assign(const=1)
                 ,family=sm.families.Binomial())
 log_result = log_sm.fit()
 
-#print(log_result.summary())
+print(log_result.summary())
 
 
 '''
