@@ -302,13 +302,10 @@ Lets try GAM & then compare.
 '''
 
 #original features for GAM, looking for predictability, will be keeping correlated features
-features = ['LIMIT_BAL', 'SEX', 'EDUCATION', 'MARRIAGE', 'AGE', 'PAY_0',
-'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6', 'BILL_AMT1', 'BILL_AMT2',
-'BILL_AMT3', 'BILL_AMT4', 'BILL_AMT5', 'BILL_AMT6', 'PAY_AMT1',
-'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5', 'PAY_AMT6',
-'default payment next month']
+
 
 '''
+Laptop couldnt handle GAM calculation... Will rerun when possible.
 terms = (
     s(0,n_splines=10) +           # LIMIT_BAL
     f(1) +           # SEX
@@ -320,34 +317,15 @@ terms = (
     l(17) + l(18) + l(19) + l(20) + l(21) + l(22)     # PAY_AMT1-6
 
     decreasing to ease up on memory...
-)'''
-terms = (
-    s(0,n_splines=5) +           # LIMIT_BAL
-    f(1) +           # SEX
-    f(2) +           # EDUCATION
-    f(3) +           # MARRIAGE
-    s(4,n_splines=5) +           # AGE
-    l(5)  + l(10) +  # PAY_0 to PAY_6
-    l(11) + l(16) +  # BILL_AMT1-6
-    l(17) + l(21) + l(22)     # PAY_AMT1-6
 )
-
-weights = compute_sample_weight(class_weight='balanced', y=y_train)
-
 
 
 gam = LogisticGAM(terms)
 
-#gam.gridsearch(X_train_f.values,y_train.values,weights=weights)   Couldn't compute on my laptop. Cant tune lambda. will use default
+gam.gridsearch(X_train_f.values,y_train.values)   Couldn't compute on my laptop. Cant tune lambda. will use default
 
-#print(gam.summary())
-'''
-with open('Data/gam_creditcards.pkl', 'wb') as f:
-    pickle.dump(gam, f)
+print(gam.summary())
 
-with open('Data/gam_creditcards.pkl', 'rb') as f:
-    gam_loaded = pickle.load(f)
-'''
 #y_predict=gam.predict(X_test_f.values)
 
 gam.fit(X_train_f.values, y_train.values)
@@ -364,13 +342,13 @@ for t in np.arange(0.1, 0.9, 0.05):
 print(f"Optimal threshold: {best_thresh}")
 y_predict=(y_prob>= best_thresh).astype(int)
 
-#confusion Matrix
+#confusion Matrix + AUC
 cm=confusion_matrix(y_test,y_predict)
 TN,FP,FN,TP=  cm.ravel()
 rec_prec_f1(TN,FP,FN,TP)
 
 auc_test= roc_auc_score(y_test,y_prob)
 print(f'for GAM AUC: {auc_test:.3f}')
-
+'''
 
 
