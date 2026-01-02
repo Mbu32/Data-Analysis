@@ -501,5 +501,34 @@ Comparing all three
 Option 2 being the highest tells us: from option 2 to 3 we dropped about .0006. meaning thats how much those 2 extra features were contributing.
 
 Pay_0 contributing: 0.8178666666666666 of the accuracy to the model! 
+
 '''
 
+
+
+'''
+we could do a GridsearchCV to tune some parameters but my computer wont handle all that but somethings we could try:
+
+
+param_grid = {
+    'n_estimators': [100, 200, 300, 500],
+    'max_depth': [3, 5, 7, 10, None],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'max_features': ['sqrt', 'log2', None],
+    'class_weight': [None, 'balanced', {0:1, 1:2}, {0:1, 1:3}]
+}
+
+rf_base = RandomForestClassifier(oob_score=True, random_state=42)
+grid_search = GridSearchCV(rf_base, param_grid, cv=3, scoring='accuracy', n_jobs=-1, verbose=1)
+grid_search.fit(X_train2, y_train)
+'''
+
+
+
+
+
+
+
+
+#lastly, we have XGBoost
