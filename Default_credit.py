@@ -29,6 +29,7 @@ from sklearn.metrics import roc_curve, accuracy_score, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_val_score, KFold, GridSearchCV
 from sklearn.utils.class_weight import compute_sample_weight
+from sklearn.inspection import permutation_importance
 
 from xgboost import XGBClassifier
 from imblearn.over_sampling import SMOTE, ADASYN, BorderlineSMOTE
@@ -273,7 +274,7 @@ for thresh in np.arange(.1,.6,.05):
     if f1 > best_f1:
         best_f1=f1
         best_thresh=thresh
-print(f'Optimal threshold: {best_thresh}')
+#print(f'Optimal threshold: {best_thresh}')
 
 y_prob_optimal = LR.predict_proba(X_test_f)[:,1]
 y_test_optimal = (y_prob_optimal>= best_thresh).astype(int)
@@ -283,10 +284,9 @@ y_test_optimal = (y_prob_optimal>= best_thresh).astype(int)
 cm=confusion_matrix(y_test,y_test_optimal)
 TN,FP,FN,TP=  cm.ravel()
 
-rec_prec_f1(TN,FP,FN,TP)
-
-auc_test= roc_auc_score(y_test,y_test_optimal)
-print(f'for regression AUC: {auc_test}')
+#rec_prec_f1(TN,FP,FN,TP)
+#auc_test= roc_auc_score(y_test,y_test_optimal)
+#print(f'for regression AUC: {auc_test}')
 '''
 before optimal Threshold:
 Precision: 0.3770610617865555 and recall:0.6271850512356841, 
@@ -301,11 +301,11 @@ for regression AUC: 0.6808051242185548
 Lets try GAM & then compare.
 '''
 
-#original features for GAM, looking for predictability, will be keeping correlated features
+#original features for GAM, looking for predictability, will be keeping correlated features, 
+# Laptop couldnt handle GAM calculation... Will rerun when possible.
 
 
 '''
-Laptop couldnt handle GAM calculation... Will rerun when possible.
 terms = (
     s(0,n_splines=10) +           # LIMIT_BAL
     f(1) +           # SEX
@@ -351,4 +351,155 @@ auc_test= roc_auc_score(y_test,y_prob)
 print(f'for GAM AUC: {auc_test:.3f}')
 '''
 
+
+
+
+
+#Random Forest Implementation
+features_updated = ['LIMIT_BAL', 'PAY_0', 'PAY_2', 'PAY_3', 'PAY_4', 'PAY_5', 'PAY_6',
+       'BILL_AMT1', 'BILL_AMT6', 
+       'PAY_AMT1', 'PAY_AMT2', 'PAY_AMT3', 'PAY_AMT4', 'PAY_AMT5',
+       'PAY_AMT6', 'SEX', 'AGE_(23, 26]',
+       'AGE_(26, 29]', 'AGE_(29, 32]', 'AGE_(32, 35]', 'AGE_(35, 40]',
+       'AGE_(40, 45]', 'AGE_(45, 55]', 'AGE_(55, 65]', 'AGE_(65, 80]',
+       'EDUCATION_2', 'EDUCATION_3', 'EDUCATION_4', 'MARRIAGE_2',
+       'MARRIAGE_3']
+
+outcome = 'default payment next month'
+
+
+rf=RandomForestClassifier(n_estimators=500,
+                          random_state=42,
+                          oob_score=True)
+
+X_train2 = X_train[['PAY_0','AGE_(55, 65]','EDUCATION_4','AGE_(65, 80]']]
+X_test2=X_test[['PAY_0','AGE_(55, 65]','EDUCATION_4','AGE_(65, 80]']]
+
+rf.fit(X_train,y_train)
+
+
+y_prediction_rf = rf.predict(X_test)
+test_accuracy = accuracy_score(y_test,y_prediction_rf)
+#print(test_accuracy)
+#0.8136
+
+
+t_oob = rf.oob_decision_function_
+oob_pred = t_oob.argmax(axis=1)
+oob_accuracy = (oob_pred ==y_train).mean()
+
+#print(oob_accuracy) 
+#0.8188666666666
+
+
+
+#Feature importance
+'''
+result = permutation_importance(rf,X_test,y_test,n_repeats=10,random_state=42)
+perm_importance = DataFrame({
+    'feature':features_updated,
+    'Permutation Importance':result.importances_mean,
+    'Std':result.importances_std
+}).sort_values('Permutation Importance',ascending=True)
+
+with open('Data/rf_importance.pkl','wb') as f:
+    pickle.dump(perm_importance,f)
+'''
+
+with open("Data/rf_importance.pkl", "rb") as f:  
+    loaded_importance = pickle.load(f)
+
+#print('\n Permutation importance:')
+#print(loaded_importance.sort_values('Permutation Importance', ascending=False))
+
+
+'''
+ feature  Permutation Importance       Std
+1          PAY_0                0.056580  0.001447
+23  AGE_(55, 65]                0.000287  0.000191
+27   EDUCATION_4                0.000113  0.000090
+24  AGE_(65, 80]                0.000047  0.000043
+29    MARRIAGE_3               -0.000080  0.000098
+26   EDUCATION_3               -0.000167  0.000269
+19  AGE_(32, 35]               -0.000327  0.000162
+25   EDUCATION_2               -0.000327  0.000561
+16  AGE_(23, 26]               -0.000347  0.000240
+17  AGE_(26, 29]               -0.000453  0.000350
+18  AGE_(29, 32]               -0.000473  0.000313
+2          PAY_2               -0.000667  0.000533
+21  AGE_(40, 45]               -0.000673  0.000312
+22  AGE_(45, 55]               -0.000713  0.000289
+4          PAY_4               -0.000887  0.000403
+20  AGE_(35, 40]               -0.001020  0.000417
+28    MARRIAGE_2               -0.001053  0.000610
+15           SEX               -0.001280  0.000292
+3          PAY_3               -0.001380  0.000331
+6          PAY_6               -0.001473  0.000224
+8      BILL_AMT6               -0.001500  0.000781
+0      LIMIT_BAL               -0.001713  0.000693
+13      PAY_AMT5               -0.001773  0.000750
+7      BILL_AMT1               -0.001827  0.000884
+11      PAY_AMT3               -0.001867  0.000399
+5          PAY_5               -0.002053  0.000511
+9       PAY_AMT1               -0.002513  0.000712
+10      PAY_AMT2               -0.002587  0.000398
+12      PAY_AMT4               -0.002713  0.000572
+14      PAY_AMT6               -0.002907  0.000477
+
+We can see here that PAY_0 plays a huge rule in predicting, but some of the others are simply adding noise. Going back and adjusting features
+'''
+
+
+#trying with varying features.
+'''
+rf1=RandomForestClassifier(n_estimators=500,
+                          random_state=42,
+                          oob_score=True)
+X_train2 = X_train[['PAY_0','AGE_(55, 65]','EDUCATION_4','AGE_(65, 80]']]
+X_test2=X_test[['PAY_0','AGE_(55, 65]','EDUCATION_4','AGE_(65, 80]']]
+rf1.fit(X_train2,y_train)
+y_prediction_rf = rf1.predict(X_test2)
+test_accuracy_2 = accuracy_score(y_test,y_prediction_rf)
+print(f'Test accuracy with only positively contributing features {test_accuracy_2}')
+'''
+#Test accuracy with only positively contributing features 0.8184666666666667
+'''
+#top 2 features
+rf2=RandomForestClassifier(n_estimators=500,
+                          random_state=42,
+                          oob_score=True)
+X_train3 = X_train[['PAY_0','AGE_(55, 65]']]
+X_test3=X_test[['PAY_0','AGE_(55, 65]']]
+rf2.fit(X_train3,y_train)
+y_prediction_rf = rf2.predict(X_test3)
+test_accuracy_3 = accuracy_score(y_test,y_prediction_rf)
+print(f'Test accuracy with only 2 contributing features {test_accuracy_3}')
+'''
+#Test accuracy with only 2 contributing features 0.8178
+'''
+rf3=RandomForestClassifier(n_estimators=500,
+                          random_state=42,
+                          oob_score=True)
+X_train3 = X_train[['PAY_0']]
+X_test3=X_test[['PAY_0']]
+rf3.fit(X_train3,y_train)
+y_prediction_rf = rf3.predict(X_test3)
+test_accuracy_4 = accuracy_score(y_test,y_prediction_rf)
+print(f'Test accuracy with only 1 contributing features {test_accuracy_4}')
+'''
+#Test accuracy with only Pay_0: 0.8178666666666666
+'''
+Comparing all three
+1) with all we had accuracy of 0.8136
+
+2) with only positive: 0.8184666666666667
+
+3)2 contributing features: 0.8178
+
+4)Test accuracy with only 1 contributing features 0.8178666666666666
+
+Option 2 being the highest tells us: from option 2 to 3 we dropped about .0006. meaning thats how much those 2 extra features were contributing.
+
+Pay_0 contributing: 0.8178666666666666 of the accuracy to the model! 
+'''
 
