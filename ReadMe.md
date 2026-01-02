@@ -120,13 +120,3 @@ Model median house values using demographic and geographic predictors, prioritiz
 - dmba (decision tree visualization utilities)
 - pickle (model and artifact persistence)
 
----
-
-## Project Philosophy
-
-These projects emphasize:
-- **Interpretability and diagnostics**
-- **Clear separation of training, validation, and testing**
-- **Decision-aware evaluation (thresholds, costs, and trade-offs)**
-
-They are designed to reflect how models are evaluated and deployed in risk management, finance, and applied data science.
