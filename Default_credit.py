@@ -25,7 +25,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.metrics import confusion_matrix, precision_recall_curve, make_scorer,f1_score,recall_score,precision_score
-from sklearn.metrics import roc_curve, accuracy_score, roc_auc_score
+from sklearn.metrics import roc_curve, accuracy_score, roc_auc_score, classification_report
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import cross_val_score, KFold, GridSearchCV
 from sklearn.utils.class_weight import compute_sample_weight
@@ -532,3 +532,36 @@ grid_search.fit(X_train2, y_train)
 
 
 #lastly, we have XGBoost
+X_train_xgb = X_train[['PAY_0', 'AGE_(55, 65]', 'EDUCATION_4', 'AGE_(65, 80]']].values
+X_test_xgb = X_test[['PAY_0', 'AGE_(55, 65]', 'EDUCATION_4', 'AGE_(65, 80]']].values
+
+xgb_default = XGBClassifier(
+    objective='binary:logistic',
+    n_estimators=200,
+    max_depth=3,
+    reg_lambda=1,
+    learning_rate=0.1,
+    subsample=.8,
+    eval_metric='error',
+    random_state=42,
+    early_stopping_rounds=20  
+)
+
+
+xgb_default.fit(
+    X_train_xgb, y_train,
+    eval_set=[(X_test_xgb, y_test)],
+    verbose=True
+)
+# Predictions
+y_pred = xgb_default.predict(X_test_xgb)
+y_pred_proba = xgb_default.predict_proba(X_test_xgb)[:, 1]
+
+# Evaluation
+print(f"Test Accuracy: {accuracy_score(y_test, y_pred):.4f}")
+print(f"ROC-AUC Score: {roc_auc_score(y_test, y_pred_proba):.4f}")
+print(f"\nBest iteration: {xgb_default.best_iteration}")
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
